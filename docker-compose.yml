@@ -1,0 +1,65 @@
+version: "2.1"
+
+services:
+  nginx-proxy:
+    image: jwilder/nginx-proxy:alpine
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - ./nginx/vhost:/etc/nginx/vhost.d
+      - ./nginx/html:/usr/share/nginx/html
+
+  nginx-proxy-le:
+    depends_on:
+      - nginx-proxy
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    restart: always
+    environment:
+      NGINX_PROXY_CONTAINER: nginx-proxy
+    container_name: nginx-proxy-le
+    volumes:
+      - ./nginx/certs:/etc/nginx/certs:rw
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    volumes_from:
+      - nginx-proxy
+
+  mariadb:
+    image: mariadb
+    restart: always
+    container_name: mariadb
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: toor
+
+  xyzshopsthai:
+    image: jwilder/whoami:latest
+    restart: always
+    container_name: xyz.shopsthai.com
+    environment:
+      VIRTUAL_HOST: xyz.shopsthai.com
+      VIRTUAL_PORT: 80
+      LETSENCRYPT_HOST: xyz.shopsthai.com
+      LETSENCRYPT_EMAIL: limweb@hotmail.com
+
+  indyduckshopsthai:
+    image: jwilder/whoami:latest
+    restart: always
+    container_name: indyduck.shopsthai.com
+    environment:
+      VIRTUAL_PORT: 80
+      VIRTUAL_HOST: indyduck.shopsthai.com
+      LETSENCRYPT_HOST: indyduck.shopsthai.com
+      LETSENCRYPT_EMAIL: limweb@hotmail.com
+
+volumes:
+  mariadb_data:
+
+networks:
+  default:
+    external:
+      name: nginx-network
